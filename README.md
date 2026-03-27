@@ -15,4 +15,4 @@ Analysis of global energy consumption and CO₂ emission trends using Machine Le
 - prediction.csv → ML Predictions
 
 ## Organization
-FICE Education Pvt. Ltd. | GTU Semester 8 | 2024-25
+FICE Education Pvt. Ltd. | GTU Semester 8 |
