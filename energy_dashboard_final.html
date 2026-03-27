@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sustainable Energy & Carbon Emission Analysis Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap');
+  :root {
+    --bg: #080c14;
+    --bg2: #0d1420;
+    --bg3: #121a2a;
+    --card: #0f1826;
+    --border: #1e2d45;
+    --text: #c8d8f0;
+    --muted: #5a7a9a;
+    --accent: #00b4ff;
+    --green: #00e676;
+    --red: #ff5252;
+    --orange: #ffab40;
+    --purple: #b388ff;
+    --teal: #00e5cc;
+    --yellow: #ffd740;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #050d1a 0%, #0a1628 60%, #050d1a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo { width: 38px; height: 38px; background: linear-gradient(135deg, #00b4ff, #00e5cc); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .header-title h1 { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: 0.02em; }
+  .header-title p { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: 'IBM Plex Mono', monospace; }
+  .header-right { display: flex; align-items: center; gap: 14px; }
+  .badge-live { background: rgba(0,230,118,0.12); color: var(--green); border: 1px solid rgba(0,230,118,0.3); padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; display: flex; align-items: center; gap: 5px; }
+  .badge-live::before { content: ''; width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .model-info { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); }
+  .model-info span { color: var(--accent); }
+
+  /* NAV */
+  .nav { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 28px; display: flex; gap: 2px; }
+  .nav-tab { padding: 11px 18px; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; transition: all 0.2s; letter-spacing: 0.04em; text-transform: uppercase; }
+  .nav-tab:hover { color: var(--text); }
+  .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* FILTERS */
+  .filters { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 28px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .filter-group { display: flex; align-items: center; gap: 8px; }
+  .filter-label { font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  select { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 5px 10px; border-radius: 5px; font-size: 11px; outline: none; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif; }
+  select:focus { border-color: var(--accent); }
+  .filter-btn { background: var(--accent); color: #000; border: none; padding: 5px 14px; border-radius: 5px; font-size: 11px; cursor: pointer; font-weight: 700; letter-spacing: 0.04em; }
+
+  /* MAIN */
+  main { padding: 20px 28px; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* KPI ROW */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+  .kpi-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px; position: relative; overflow: hidden; transition: transform 0.2s, border-color 0.2s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .kpi-card::after { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+  .kpi-blue::after { background: linear-gradient(90deg, var(--accent), var(--teal)); }
+  .kpi-green::after { background: linear-gradient(90deg, var(--green), #69f0ae); }
+  .kpi-red::after { background: linear-gradient(90deg, var(--red), #ff8a80); }
+  .kpi-orange::after { background: linear-gradient(90deg, var(--orange), #ffd180); }
+  .kpi-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 10px; font-family: 'IBM Plex Mono', monospace; }
+  .kpi-value { font-size: 26px; font-weight: 700; line-height: 1; margin-bottom: 6px; font-family: 'IBM Plex Mono', monospace; }
+  .kpi-blue .kpi-value { color: var(--accent); }
+  .kpi-green .kpi-value { color: var(--green); }
+  .kpi-red .kpi-value { color: var(--red); }
+  .kpi-orange .kpi-value { color: var(--orange); }
+  .kpi-sub { font-size: 10px; color: var(--muted); }
+  .kpi-icon { position: absolute; right: 14px; top: 14px; font-size: 26px; opacity: 0.12; }
+
+  /* CHART GRID */
+  .chart-row { display: grid; gap: 14px; margin-bottom: 18px; }
+  .chart-row-2 { grid-template-columns: 3fr 2fr; }
+  .chart-row-equal { grid-template-columns: 1fr 1fr; }
+  .chart-row-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .chart-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px;
+    transition: border-color 0.2s;
+  }
+  .chart-card:hover { border-color: rgba(0,180,255,0.3); }
+  .chart-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+  .chart-title { font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: 0.02em; }
+  .chart-sub { font-size: 10px; color: var(--muted); margin-top: 3px; font-family: 'IBM Plex Mono', monospace; }
+  .chart-pills { display: flex; gap: 5px; }
+  .pill { background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--muted); font-size: 9px; padding: 3px 8px; border-radius: 20px; cursor: pointer; transition: all 0.2s; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .pill:hover, .pill.active { background: rgba(0,180,255,0.15); border-color: var(--accent); color: var(--accent); }
+
+  /* ML MODEL METRICS */
+  .ml-metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px; }
+  .metric-box { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center; }
+  .metric-val { font-size: 20px; font-weight: 700; color: var(--accent); font-family: 'IBM Plex Mono', monospace; }
+  .metric-lbl { font-size: 10px; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* LEGEND */
+  .custom-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--muted); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .legend-dash { width: 16px; height: 2px; border-top: 2px dashed; opacity: 0.8; }
+
+  /* FORECAST TABLE */
+  .forecast-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .forecast-table th { background: var(--bg3); color: var(--muted); font-weight: 700; padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; font-family: 'IBM Plex Mono', monospace; }
+  .forecast-table td { padding: 8px 12px; border-bottom: 1px solid rgba(30,45,69,0.5); color: var(--text); font-family: 'IBM Plex Mono', monospace; }
+  .forecast-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* FOOTER */
+  .footer { text-align: center; padding: 20px; color: var(--muted); font-size: 10px; font-family: 'IBM Plex Mono', monospace; border-top: 1px solid var(--border); margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo">🌱</div>
+    <div class="header-title">
+      <h1>Sustainable Energy & Carbon Emission Analysis</h1>
+      <p>GTU Semester 8 Project · FICE Education Pvt. Ltd. · ML: Linear Regression</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="model-info">Model Accuracy: <span>91.27%</span></div>
+    <div class="model-info">R² Score: <span>0.9127</span></div>
+    <div class="badge-live">LIVE DASHBOARD</div>
+  </div>
+</header>
+
+<nav class="nav">
+  <div class="nav-tab active" onclick="switchPage('overview',this)">📊 Overview</div>
+  <div class="nav-tab" onclick="switchPage('prediction',this)">🤖 ML Prediction</div>
+  <div class="nav-tab" onclick="switchPage('country',this)">🌍 Country Analysis</div>
+  <div class="nav-tab" onclick="switchPage('energy',this)">⚡ Energy Mix</div>
+</nav>
+
+<div class="filters">
+  <div class="filter-group">
+    <span class="filter-label">Country</span>
+    <select id="countryFilter" onchange="applyFilters()">
+      <option value="all">All Countries</option>
+      <option value="India">India</option>
+      <option value="United States">United States</option>
+      <option value="China">China</option>
+      <option value="Germany">Germany</option>
+      <option value="Brazil">Brazil</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Year Range</span>
+    <select id="yearFilter" onchange="applyFilters()">
+      <option value="all">2010 – 2023</option>
+      <option value="2015">2015 – 2023</option>
+      <option value="2018">2018 – 2023</option>
+      <option value="2020">2020 – 2023</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Metric</span>
+    <select id="metricFilter" onchange="applyFilters()">
+      <option value="co2">CO₂ Emissions</option>
+      <option value="renewables">Renewables %</option>
+      <option value="energy">Energy per Capita</option>
+    </select>
+  </div>
+  <button class="filter-btn" onclick="resetFilters()">↺ Reset</button>
+</div>
+
+<main>
+
+<!-- ═══════════════ OVERVIEW PAGE ═══════════════ -->
+<div class="page active" id="page-overview">
+
+  <div class="kpi-row">
+    <div class="kpi-card kpi-blue">
+      <div class="kpi-icon">💨</div>
+      <div class="kpi-label">Total CO₂ Emissions (Mt)</div>
+      <div class="kpi-value">259.33K</div>
+      <div class="kpi-sub">Across 5 countries · 2010–2023</div>
+    </div>
+    <div class="kpi-card kpi-green">
+      <div class="kpi-icon">🌿</div>
+      <div class="kpi-label">Avg Renewables Share</div>
+      <div class="kpi-value">22.6%</div>
+      <div class="kpi-sub">▲ +9.2% since 2010</div>
+    </div>
+    <div class="kpi-card kpi-red">
+      <div class="kpi-icon">⚡</div>
+      <div class="kpi-label">Avg Energy per Capita</div>
+      <div class="kpi-value">34,980</div>
+      <div class="kpi-sub">kWh · Global average</div>
+    </div>
+    <div class="kpi-card kpi-orange">
+      <div class="kpi-icon">🔥</div>
+      <div class="kpi-label">Avg Fossil Share</div>
+      <div class="kpi-value">77.4%</div>
+      <div class="kpi-sub">▼ Declining trend</div>
+    </div>
+  </div>
+
+  <div class="chart-row chart-row-2">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">CO₂ Emission Trends by Country</div>
+          <div class="chart-sub">Historical data 2010–2023 (Mt CO₂)</div>
+        </div>
+        <div class="chart-pills">
+          <div class="pill active" onclick="toggleCO2(this,'total')">Total</div>
+          <div class="pill" onclick="toggleCO2(this,'percapita')">Per Capita</div>
+        </div>
+      </div>
+      <canvas id="co2TrendChart" height="200"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Renewable Energy Share</div>
+          <div class="chart-sub">% by country in 2023</div>
+        </div>
+      </div>
+      <canvas id="pieChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-row chart-row-equal">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">CO₂ Emissions by Country (2023)</div>
+          <div class="chart-sub">Comparative bar chart</div>
+        </div>
+      </div>
+      <canvas id="barChart" height="180"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Renewable vs Fossil Energy Trend</div>
+          <div class="chart-sub">Global average % over years</div>
+        </div>
+      </div>
+      <canvas id="renFossilChart" height="180"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════ ML PREDICTION PAGE ═══════════════ -->
+<div class="page" id="page-prediction">
+
+  <div class="ml-metrics">
+    <div class="metric-box">
+      <div class="metric-val">91.27%</div>
+      <div class="metric-lbl">Model Accuracy</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-val">0.9127</div>
+      <div class="metric-lbl">R² Score</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-val">Linear</div>
+      <div class="metric-lbl">Regression Model</div>
+    </div>
+  </div>
+
+  <div class="chart-row">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Actual vs Predicted CO₂ Emissions (2010–2035)</div>
+          <div class="chart-sub">Solid lines = Historical · Dashed lines = ML Predictions · All 5 countries</div>
+        </div>
+        <div class="chart-pills">
+          <div class="pill active" onclick="togglePredCountry(this,'all')">All</div>
+          <div class="pill" onclick="togglePredCountry(this,'India')">India</div>
+          <div class="pill" onclick="togglePredCountry(this,'United States')">USA</div>
+          <div class="pill" onclick="togglePredCountry(this,'China')">China</div>
+        </div>
+      </div>
+      <canvas id="predChart" height="260"></canvas>
+      <div class="custom-legend" id="predLegend"></div>
+    </div>
+  </div>
+
+  <div class="chart-row chart-row-equal">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">CO₂ Forecast 2024–2035</div>
+          <div class="chart-sub">ML predicted values per country</div>
+        </div>
+      </div>
+      <canvas id="forecastBar" height="200"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Forecast Table</div>
+          <div class="chart-sub">Predicted CO₂ values (Mt)</div>
+        </div>
+      </div>
+      <div style="overflow-y:auto;max-height:220px">
+        <table class="forecast-table" id="forecastTable"></table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════ COUNTRY ANALYSIS PAGE ═══════════════ -->
+<div class="page" id="page-country">
+  <div class="chart-row chart-row-equal">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div><div class="chart-title">India — CO₂ & Renewables Trend</div><div class="chart-sub">2010–2023</div></div>
+      </div>
+      <canvas id="indiaChart" height="200"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div><div class="chart-title">United States — CO₂ & Renewables Trend</div><div class="chart-sub">2010–2023</div></div>
+      </div>
+      <canvas id="usaChart" height="200"></canvas>
+    </div>
+  </div>
+  <div class="chart-row chart-row-3">
+    <div class="chart-card">
+      <div class="chart-header"><div><div class="chart-title">China</div></div></div>
+      <canvas id="chinaChart" height="160"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header"><div><div class="chart-title">Germany</div></div></div>
+      <canvas id="germanyChart" height="160"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header"><div><div class="chart-title">Brazil</div></div></div>
+      <canvas id="brazilChart" height="160"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ ENERGY MIX PAGE ═══════════════ -->
+<div class="page" id="page-energy">
+  <div class="chart-row chart-row-equal">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div><div class="chart-title">Renewable Energy Growth Over Years</div><div class="chart-sub">% share by country 2010–2023</div></div>
+      </div>
+      <canvas id="renGrowthChart" height="220"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div><div class="chart-title">Energy per Capita Comparison</div><div class="chart-sub">kWh per person by year</div></div>
+      </div>
+      <canvas id="energyCapitaChart" height="220"></canvas>
+    </div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div><div class="chart-title">Renewable vs Fossil Energy Share — All Countries (2023)</div><div class="chart-sub">Grouped comparison</div></div>
+      </div>
+      <canvas id="renVsFossil2023" height="160"></canvas>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<div class="footer">
+  Sustainable Energy Consumption & Carbon Emission Analysis · GTU Semester 8 · FICE Education Pvt. Ltd. · ML Model: Linear Regression · R² = 0.9127
+</div>
+
+<script>
+// ════════════ DATA ════════════
+const YEARS = [2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023];
+const PRED_YEARS = [2024,2025,2026,2027,2028,2029,2030,2031,2032,2033,2034,2035];
+const ALL_YEARS = [...YEARS, ...PRED_YEARS];
+
+const DATA = {
+  // ── VERIFIED DATA — Sources: Global Carbon Project, IEA, EDGAR, BP Statistical Review ──
+  // CO2 in Mt (fossil fuel combustion), Renewables % of primary energy, Energy kWh/person/year
+  China: {
+    co2:    [8080,8779,9068,9468,9564,9369,9462,9691,10060,10260,10340,11160,11470,12600],
+    ren:    [9.2,9.8,10.6,10.8,11.3,12.0,13.1,13.8,14.7,15.7,17.4,17.8,19.6,21.3],
+    energy: [19200,21100,22300,23200,23900,24400,25200,26800,28300,29100,30200,33000,34100,35200],
+    pred:   [12043.01, 12012.24, 11981.48, 11950.71, 11919.95, 11889.18, 11858.42, 11827.65, 11796.89, 11766.12, 11735.36, 11704.59],
+    color:  '#ffab40', flag: '🇨🇳'
+  },
+  'United States': {
+    co2:    [5432,5316,5091,5218,5327,5179,5112,5073,5299,5110,4636,5032,5003,4682],
+    ren:    [7.8,8.5,8.8,9.0,9.6,9.9,10.8,11.5,11.5,12.5,14.0,13.8,14.9,15.8],
+    energy: [84500,83200,81500,83000,84500,83000,82300,81500,84200,82900,74800,80700,81000,79500],
+    pred:   [4868.88, 4926.62, 4984.36, 5042.1, 5099.84, 5157.58, 5215.32, 5273.06, 5330.8, 5388.54, 5446.28, 5504.02],
+    color:  '#ff5252', flag: '🇺🇸'
+  },
+  India: {
+    co2:    [1611,1744,1850,1966,2091,2183,2266,2368,2516,2584,2375,2625,2773,2955],
+    ren:    [24.5,24.0,23.5,23.2,22.8,23.2,23.6,24.3,24.5,24.8,27.0,26.0,27.5,28.0],
+    energy: [6880,7120,7380,7640,8010,8360,8710,9060,9560,9800,9320,10200,10650,10980],
+    pred:   [2923.8, 2964.36, 3004.92, 3045.48, 3086.04, 3126.6, 3167.17, 3207.73, 3248.29, 3288.85, 3329.41, 3369.97],
+    color:  '#00b4ff', flag: '🇮🇳'
+  },
+  Germany: {
+    co2:    [804,762,768,796,733,740,741,735,702,657,585,625,638,583],
+    ren:    [11.1,12.5,13.4,13.5,14.7,15.7,16.2,18.0,18.4,21.5,23.5,21.8,22.0,25.5],
+    energy: [46200,44500,44800,45800,43200,43300,43600,43000,42100,41200,39100,40500,38200,37800],
+    pred:   [584.27, 595.79, 607.32, 618.85, 630.37, 641.9, 653.43, 664.95, 676.48, 688.0, 699.53, 711.06],
+    color:  '#00e676', flag: '🇩🇪'
+  },
+  Brazil: {
+    co2:    [419,449,490,503,508,499,459,474,490,493,440,476,491,481],
+    ren:    [44.5,45.0,43.5,43.0,43.5,43.8,42.5,43.0,44.2,46.5,48.0,48.5,48.0,47.5],
+    energy: [13300,13800,14100,14800,15200,14800,14300,14500,14700,15200,14900,16200,16700,16500],
+    pred:   [495.94, 497.58, 499.23, 500.87, 502.51, 504.15, 505.79, 507.43, 509.07, 510.71, 512.35, 513.99],
+    color:  '#b388ff', flag: '🇧🇷'
+  }
+};
+
+const countries = Object.keys(DATA);
+
+// ════════════ CHART DEFAULTS ════════════
+Chart.defaults.color = '#5a7a9a';
+Chart.defaults.borderColor = '#1e2d45';
+const gridOpts = { color: 'rgba(30,45,69,0.6)', drawBorder: false };
+const baseOpts = {
+  responsive: true,
+  plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0d1420', titleColor: '#c8d8f0', bodyColor: '#5a7a9a', borderColor: '#1e2d45', borderWidth: 1, padding: 10 } },
+  scales: {
+    x: { grid: gridOpts, ticks: { font: { size: 10, family: 'IBM Plex Mono' } } },
+    y: { grid: gridOpts, ticks: { font: { size: 10, family: 'IBM Plex Mono' } } }
+  }
+};
+
+// ════════════ OVERVIEW CHARTS ════════════
+let co2TrendChart, pieChart, barChart, renFossilChart;
+
+function initOverview() {
+  // CO2 Trend
+  co2TrendChart = new Chart(document.getElementById('co2TrendChart'), {
+    type: 'line',
+    data: {
+      labels: YEARS,
+      datasets: countries.map(c => ({
+        label: c,
+        data: DATA[c].co2,
+        borderColor: DATA[c].color,
+        backgroundColor: DATA[c].color + '15',
+        borderWidth: 2,
+        pointRadius: 2,
+        tension: 0.4,
+        fill: false
+      }))
+    },
+    options: { ...JSON.parse(JSON.stringify(baseOpts)),
+      plugins: { legend: { display: true, position: 'bottom', labels: { color: '#5a7a9a', font: { size: 10 }, boxWidth: 12, padding: 10 } }, tooltip: baseOpts.plugins.tooltip }
+    }
+  });
+
+  // Pie chart
+  pieChart = new Chart(document.getElementById('pieChart'), {
+    type: 'doughnut',
+    data: {
+      labels: countries,
+      datasets: [{ data: countries.map(c => DATA[c].ren[13]), backgroundColor: countries.map(c => DATA[c].color), borderColor: '#0f1826', borderWidth: 2 }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: true, position: 'bottom', labels: { color: '#5a7a9a', font: { size: 10 }, boxWidth: 12 } },
+        tooltip: baseOpts.plugins.tooltip
+      }
+    }
+  });
+
+  // Bar chart 2023
+  barChart = new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels: countries.map(c => c === 'United States' ? 'USA' : c),
+      datasets: [{ label: 'CO₂ 2023', data: countries.map(c => DATA[c].co2[13]), backgroundColor: countries.map(c => DATA[c].color + 'cc'), borderRadius: 4 }]
+    },
+    options: { ...JSON.parse(JSON.stringify(baseOpts)) }
+  });
+
+  // Ren vs Fossil trend
+  const avgRen = YEARS.map((_,i) => (countries.reduce((s,c) => s + DATA[c].ren[i], 0) / 5).toFixed(1));
+  const avgFossil = avgRen.map(v => (100 - v).toFixed(1));
+  renFossilChart = new Chart(document.getElementById('renFossilChart'), {
+    type: 'line',
+    data: {
+      labels: YEARS,
+      datasets: [
+        { label: 'Renewables %', data: avgRen, borderColor: '#00e676', backgroundColor: 'rgba(0,230,118,0.1)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 2 },
+        { label: 'Fossil %', data: avgFossil, borderColor: '#ff5252', backgroundColor: 'rgba(255,82,82,0.1)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 2 }
+      ]
+    },
+    options: { ...JSON.parse(JSON.stringify(baseOpts)),
+      plugins: { legend: { display: true, position: 'bottom', labels: { color: '#5a7a9a', font: { size: 10 }, boxWidth: 12 } }, tooltip: baseOpts.plugins.tooltip }
+    }
+  });
+}
+
+// ════════════ PREDICTION CHARTS ════════════
+let predChart;
+
+function initPrediction() {
+  const datasets = [];
+  countries.forEach(c => {
+    // Actual line
+    datasets.push({
+      label: c + ' (Actual)',
+      data: [...DATA[c].co2, ...new Array(12).fill(null)],
+      borderColor: DATA[c].color,
+      backgroundColor: 'transparent',
+      borderWidth: 2.5,
+      pointRadius: 1.5,
+      tension: 0.4
+    });
+    // Predicted line
+    datasets.push({
+      label: c + ' (Predicted)',
+      data: [...new Array(14).fill(null), ...DATA[c].pred],
+      borderColor: DATA[c].color,
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      borderDash: [6, 4],
+      pointRadius: 2,
+      pointStyle: 'triangle',
+      tension: 0.4
+    });
+  });
+
+  predChart = new Chart(document.getElementById('predChart'), {
+    type: 'line',
+    data: { labels: ALL_YEARS, datasets },
+    options: { ...JSON.parse(JSON.stringify(baseOpts)),
+      plugins: {
+        legend: { display: false },
+        tooltip: { ...baseOpts.plugins.tooltip,
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(0)} Mt`
+          }
+        },
+        annotation: {}
+      }
+    }
+  });
+
+  // Build legend
+  const leg = document.getElementById('predLegend');
+  countries.forEach(c => {
+    leg.innerHTML += `<div class="legend-item"><div class="legend-dot" style="background:${DATA[c].color}"></div><span>${DATA[c].flag} ${c}</span></div>`;
+  });
+  leg.innerHTML += `<div class="legend-item" style="margin-left:10px"><div style="width:16px;height:2px;background:#888;display:inline-block"></div>&nbsp;Actual</div>`;
+  leg.innerHTML += `<div class="legend-item"><div style="width:16px;height:2px;border-top:2px dashed #888;display:inline-block"></div>&nbsp;Predicted</div>`;
+
+  // Forecast bar
+  new Chart(document.getElementById('forecastBar'), {
+    type: 'bar',
+    data: {
+      labels: PRED_YEARS,
+      datasets: countries.map(c => ({
+        label: c === 'United States' ? 'USA' : c,
+        data: DATA[c].pred,
+        backgroundColor: DATA[c].color + 'aa',
+        borderRadius: 3
+      }))
+    },
+    options: { ...JSON.parse(JSON.stringify(baseOpts)),
+      plugins: { legend: { display: true, position: 'bottom', labels: { color: '#5a7a9a', font: { size: 10 }, boxWidth: 10 } }, tooltip: baseOpts.plugins.tooltip },
+      scales: { x: { stacked: false, grid: gridOpts, ticks: { font: { size: 9, family: 'IBM Plex Mono' } } }, y: { grid: gridOpts, ticks: { font: { size: 9, family: 'IBM Plex Mono' } } } }
+    }
+  });
+
+  // Forecast table
+  let html = `<thead><tr><th>Year</th>${countries.map(c=>`<th>${c==='United States'?'USA':c}</th>`).join('')}</tr></thead><tbody>`;
+  PRED_YEARS.forEach((yr,i) => {
+    html += `<tr><td><strong>${yr}</strong> <span style="background:rgba(179,136,255,0.2);color:#b388ff;padding:1px 5px;border-radius:3px;font-size:9px">PRED</span></td>`;
+    countries.forEach(c => {
+      const val = DATA[c].pred[i];
+      const prev = DATA[c].pred[i-1] || DATA[c].co2[13];
+      const up = val > prev;
+      html += `<td style="color:${up?'#ff8a80':'#69f0ae'}">${up?'▲':'▼'} ${val.toFixed(0)}</td>`;
+    });
+    html += `</tr>`;
+  });
+  html += '</tbody>';
+  document.getElementById('forecastTable').innerHTML = html;
+}
+
+// ════════════ COUNTRY CHARTS ════════════
+function makeCountryChart(id, country) {
+  new Chart(document.getElementById(id), {
+    type: 'line',
+    data: {
+      labels: YEARS,
+      datasets: [
+        { label: 'CO₂ (Mt)', data: DATA[country].co2, borderColor: DATA[country].color, backgroundColor: DATA[country].color+'15', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 2, yAxisID: 'y' },
+        { label: 'Renewables %', data: DATA[country].ren, borderColor: '#00e676', borderDash: [4,3], fill: false, tension: 0.4, borderWidth: 2, pointRadius: 2, yAxisID: 'y1' }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: true, position: 'bottom', labels: { color: '#5a7a9a', font: { size: 10 }, boxWidth: 10 } }, tooltip: baseOpts.plugins.tooltip },
+      scales: {
+        x: { grid: gridOpts, ticks: { font: { size: 9, family: 'IBM Plex Mono' } } },
+        y: { grid: gridOpts, ticks: { font: { size: 9, family: 'IBM Plex Mono' } }, position: 'left' },
+        y1: { grid: { drawOnChartArea: false }, ticks: { font: { size: 9, family: 'IBM Plex Mono' } }, position: 'right', min: 0, max: 100 }
+      }
+    }
+  });
+}
+
+function initCountry() {
+  makeCountryChart('indiaChart', 'India');
+  makeCountryChart('usaChart', 'United States');
+  makeCountryChart('chinaChart', 'China');
+  makeCountryChart('germanyChart', 'Germany');
+  makeCountryChart('brazilChart', 'Brazil');
+}
+
+// ════════════ ENERGY MIX CHARTS ════════════
+function initEnergy() {
+  // Renewables growth
+  new Chart(document.getElementById('renGrowthChart'), {
+    type: 'line',
+    data: {
+      labels: YEARS,
+      datasets: countries.map(c => ({
+        label: c === 'United States' ? 'USA' : c,
+        data: DATA[c].ren,
+        borderColor: DATA[c].color,
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        pointRadius: 2,
+        tension: 0.4
+      }))
+    },
+    options: { ...JSON.parse(JSON.stringify(baseOpts)),
+      plugins: { legend: { display: true, position: 'bottom', labels: { color: '#5a7a9a', font: { size: 10 }, boxWidth: 10 } }, tooltip: baseOpts.plugins.tooltip }
+    }
+  });
+
+  // Energy per capita
+  new Chart(document.getElementById('energyCapitaChart'), {
+    type: 'line',
+    data: {
+      labels: YEARS,
+      datasets: countries.map(c => ({
+        label: c === 'United States' ? 'USA' : c,
+        data: DATA[c].energy,
+        borderColor: DATA[c].color,
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        pointRadius: 2,
+        tension: 0.4
+      }))
+    },
+    options: { ...JSON.parse(JSON.stringify(baseOpts)),
+      plugins: { legend: { display: true, position: 'bottom', labels: { color: '#5a7a9a', font: { size: 10 }, boxWidth: 10 } }, tooltip: baseOpts.plugins.tooltip }
+    }
+  });
+
+  // Ren vs fossil 2023
+  new Chart(document.getElementById('renVsFossil2023'), {
+    type: 'bar',
+    data: {
+      labels: countries.map(c => c === 'United States' ? 'USA' : c),
+      datasets: [
+        { label: 'Renewables %', data: countries.map(c => DATA[c].ren[13]), backgroundColor: '#00e676cc', borderRadius: 4 },
+        { label: 'Fossil %', data: countries.map(c => 100 - DATA[c].ren[13]), backgroundColor: '#ff5252cc', borderRadius: 4 }
+      ]
+    },
+    options: { ...JSON.parse(JSON.stringify(baseOpts)),
+      plugins: { legend: { display: true, position: 'bottom', labels: { color: '#5a7a9a', font: { size: 10 }, boxWidth: 10 } }, tooltip: baseOpts.plugins.tooltip },
+      scales: { x: { grid: gridOpts, stacked: false }, y: { grid: gridOpts, max: 100 } }
+    }
+  });
+}
+
+// ════════════ TOGGLE FUNCTIONS ════════════
+function toggleCO2(el, mode) {
+  el.parentElement.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  if (mode === 'percapita') {
+    co2TrendChart.data.datasets.forEach((ds, i) => { ds.data = DATA[countries[i]].energy; });
+    co2TrendChart.options.scales.y.title = { display: true, text: 'Energy per Capita (kWh)', color: '#5a7a9a' };
+  } else {
+    co2TrendChart.data.datasets.forEach((ds, i) => { ds.data = DATA[countries[i]].co2; });
+  }
+  co2TrendChart.update();
+}
+
+function togglePredCountry(el, country) {
+  el.parentElement.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  predChart.data.datasets.forEach(ds => {
+    if (country === 'all') { ds.hidden = false; }
+    else { ds.hidden = !ds.label.includes(country); }
+  });
+  predChart.update();
+}
+
+// ════════════ PAGE SWITCH ════════════
+const initialized = {};
+function switchPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  el.classList.add('active');
+  if (!initialized[id]) {
+    initialized[id] = true;
+    if (id === 'prediction') initPrediction();
+    else if (id === 'country') initCountry();
+    else if (id === 'energy') initEnergy();
+  }
+}
+
+function applyFilters() {
+  const selectedCountry = document.getElementById('countryFilter').value;
+  const selectedYear    = document.getElementById('yearFilter').value;
+  const selectedMetric  = document.getElementById('metricFilter').value;
+
+  const activeCountries = selectedCountry === 'all' ? countries : [selectedCountry];
+
+  const yearStart = selectedYear === 'all' ? 0
+                  : selectedYear === '2015' ? 5
+                  : selectedYear === '2018' ? 8
+                  : selectedYear === '2020' ? 10 : 0;
+  const filteredYears = YEARS.slice(yearStart);
+
+  const metricKey   = selectedMetric === 'co2' ? 'co2' : selectedMetric === 'renewables' ? 'ren' : 'energy';
+  const metricLabel = selectedMetric === 'co2' ? 'CO₂ (Mt)' : selectedMetric === 'renewables' ? 'Renewables %' : 'Energy per Capita';
+
+  // Update CO2 Trend Chart
+  if (co2TrendChart) {
+    co2TrendChart.data.labels = filteredYears;
+    co2TrendChart.data.datasets = activeCountries.map(c => ({
+      label: c, data: DATA[c][metricKey].slice(yearStart),
+      borderColor: DATA[c].color, backgroundColor: DATA[c].color + '15',
+      borderWidth: 2, pointRadius: 2, tension: 0.4, fill: false
+    }));
+    co2TrendChart.update();
+  }
+
+  // Update Pie Chart
+  if (pieChart) {
+    pieChart.data.labels = activeCountries;
+    pieChart.data.datasets[0].data = activeCountries.map(c => DATA[c].ren[13]);
+    pieChart.data.datasets[0].backgroundColor = activeCountries.map(c => DATA[c].color);
+    pieChart.update();
+  }
+
+  // Update Bar Chart
+  if (barChart) {
+    barChart.data.labels = activeCountries.map(c => c === 'United States' ? 'USA' : c);
+    barChart.data.datasets[0].data = activeCountries.map(c => {
+      const vals = DATA[c][metricKey].slice(yearStart);
+      return parseFloat((vals.reduce((a,b)=>a+b,0) / vals.length).toFixed(1));
+    });
+    barChart.data.datasets[0].backgroundColor = activeCountries.map(c => DATA[c].color + 'cc');
+    barChart.data.datasets[0].label = metricLabel;
+    barChart.update();
+  }
+
+  // Update KPI cards
+  const n = activeCountries.length * filteredYears.length;
+  const co2Total  = activeCountries.reduce((s,c) => s + DATA[c].co2.slice(yearStart).reduce((a,b)=>a+b,0), 0);
+  const avgRen    = (activeCountries.reduce((s,c) => s + DATA[c].ren.slice(yearStart).reduce((a,b)=>a+b,0), 0) / n).toFixed(1);
+  const avgEnergy = Math.round(activeCountries.reduce((s,c) => s + DATA[c].energy.slice(yearStart).reduce((a,b)=>a+b,0), 0) / n);
+  const avgFossil = (100 - parseFloat(avgRen)).toFixed(1);
+
+  document.querySelector('.kpi-blue .kpi-value').textContent   = (co2Total/1000).toFixed(2) + 'K';
+  document.querySelector('.kpi-green .kpi-value').textContent  = avgRen + '%';
+  document.querySelector('.kpi-red .kpi-value').textContent    = avgEnergy.toLocaleString();
+  document.querySelector('.kpi-orange .kpi-value').textContent = avgFossil + '%';
+
+  // Update KPI sub labels
+  const yr1 = YEARS[yearStart], yr2 = YEARS[YEARS.length-1];
+  const countryLabel = selectedCountry === 'all' ? '5 countries' : selectedCountry;
+  document.querySelector('.kpi-blue .kpi-sub').textContent  = `${countryLabel} · ${yr1}–${yr2}`;
+  document.querySelector('.kpi-green .kpi-sub').textContent = `Avg ${yr1}–${yr2}`;
+  document.querySelector('.kpi-red .kpi-sub').textContent   = `kWh · ${countryLabel}`;
+  document.querySelector('.kpi-orange .kpi-sub').textContent= `Avg ${yr1}–${yr2}`;
+}
+
+function resetFilters() {
+  document.getElementById('countryFilter').value = 'all';
+  document.getElementById('yearFilter').value    = 'all';
+  document.getElementById('metricFilter').value  = 'co2';
+  applyFilters();
+}
+
+// INIT
+window.addEventListener('load', () => {
+  initialized.overview = true;
+  initOverview();
+});
+</script>
+</body>
+</html>
